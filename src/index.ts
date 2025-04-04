@@ -16,8 +16,8 @@ interface TrackingData {
 // Interface for the options passed to the HOF
 interface LLMTrackerOptions {
   functionName: string;
-  trackerApiUrl: string; // URL of your backend tracking API
-  apiKey?: string; // Optional: API key for authenticating with your tracker API
+  // trackerApiUrl: string; // URL of your backend tracking API - Removed for console logging
+  // apiKey?: string; // Optional: API key for authenticating with your tracker API - Removed
   metadata?: Record<string, any>; // Optional: Additional metadata to send
   // Optional: Custom function to extract token usage if the LLM response structure is non-standard
   // It should return an object { inputTokens: number, outputTokens: number }
@@ -105,9 +105,12 @@ export function withLLMTracking<TArgs extends any[], TResult>(
         },
       };
 
-      // --- 5. Send Data to Backend (Fire and Forget) ---
-      // We don't await this promise to avoid blocking the return of the original function's result.
-      // Error handling is done within the sendTrackingData function.
+      // --- 5. Log Data to Console ---
+      console.log("LLM Tracker Data:", JSON.stringify(trackingData, null, 2)); // Pretty print the JSON
+
+      // --- Send Data to Backend (Fire and Forget) ---
+      // Removed backend sending logic
+      /*
       sendTrackingData(
         options.trackerApiUrl,
         trackingData,
@@ -116,6 +119,7 @@ export function withLLMTracking<TArgs extends any[], TResult>(
         // Log errors but don't let tracking failure break the main flow
         console.error("LLM Tracker: Failed to send tracking data.", error);
       });
+      */
 
       // --- 6. Return the original result ---
       return result;
@@ -133,50 +137,16 @@ export function withLLMTracking<TArgs extends any[], TResult>(
 }
 
 // --- Helper Function to Send Data ---
-
+// Removed: sendTrackingData function is no longer needed for console logging
+/*
 async function sendTrackingData(
   apiUrl: string,
   data: TrackingData,
   apiKey?: string
 ): Promise<void> {
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (apiKey) {
-      headers["Authorization"] = `Bearer ${apiKey}`; // Example: Bearer token auth
-    }
-
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      // Log detailed error if the API responds with non-OK status
-      const errorBody = await response.text();
-      console.error(
-        `LLM Tracker: API request failed with status ${response.status}. URL: ${apiUrl}, Body: ${errorBody}`
-      );
-      // Throw an error to be caught by the caller (in withLLMTracking)
-      throw new Error(
-        `API request failed: ${response.status} ${response.statusText}`
-      );
-    }
-
-    // Optional: Log success confirmation for debugging
-    // console.log("LLM Tracker: Tracking data sent successfully.");
-  } catch (error) {
-    // Catch network errors or errors during the fetch operation
-    console.error(
-      `LLM Tracker: Network or fetch error sending tracking data to ${apiUrl}.`,
-      error
-    );
-    // Re-throw the error to be caught by the caller
-    throw error;
-  }
+  // ... (implementation removed) ...
 }
+*/
 
 // --- Example Usage (How a developer would use it) ---
 /*
@@ -199,8 +169,8 @@ async function generateBlogPost(topic: string): Promise<any> {
 // Wrap the function with the tracker
 const trackedGenerateBlogPost = withLLMTracking(generateBlogPost, {
     functionName: 'generateBlogPost', // Identifier for this function
-    trackerApiUrl: 'http://localhost:3001/track', // Your backend API endpoint
-    // apiKey: 'YOUR_TRACKER_API_KEY', // If your tracker API needs auth
+    // trackerApiUrl: 'http://localhost:3001/track', // Removed - Not needed for console logging
+    // apiKey: 'YOUR_TRACKER_API_KEY', // Removed - Not needed for console logging
     metadata: { // Optional extra info
         userId: 'user-123',
         feature: 'blog-generation-v1'
@@ -211,7 +181,7 @@ const trackedGenerateBlogPost = withLLMTracking(generateBlogPost, {
 async function main() {
     try {
         const result = await trackedGenerateBlogPost('the future of AI');
-        console.log("Blog post generation complete. Tokens tracked.");
+        console.log("Blog post generation complete. Tracking data logged to console.");
         // console.log("LLM Response:", result); // You still get the original result
     } catch (error) {
         console.error("Failed to generate blog post:", error);
