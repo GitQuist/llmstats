@@ -69,17 +69,10 @@ function withLLMTracking(originalFunction, options) {
             // --- 5. Log Data to Console ---
             console.log("LLM Tracker Data:", JSON.stringify(trackingData, null, 2)); // Pretty print the JSON
             // --- Send Data to Backend (Fire and Forget) ---
-            // Removed backend sending logic
-            /*
-            sendTrackingData(
-              options.trackerApiUrl,
-              trackingData,
-              options.apiKey
-            ).catch((error) => {
-              // Log errors but don't let tracking failure break the main flow
-              console.error("LLM Tracker: Failed to send tracking data.", error);
+            sendTrackingData(options.trackerApiUrl, trackingData, options.apiKey).catch((error) => {
+                // Log errors but don't let tracking failure break the main flow
+                console.error("LLM Tracker: Failed to send tracking data.", error);
             });
-            */
             // --- 6. Return the original result ---
             return result;
         }
@@ -93,16 +86,38 @@ function withLLMTracking(originalFunction, options) {
     });
 }
 // --- Helper Function to Send Data ---
-// Removed: sendTrackingData function is no longer needed for console logging
-/*
-async function sendTrackingData(
-  apiUrl: string,
-  data: TrackingData,
-  apiKey?: string
-): Promise<void> {
-  // ... (implementation removed) ...
+function sendTrackingData(apiUrl, data, apiKey) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const headers = {
+                "Content-Type": "application/json",
+            };
+            if (apiKey) {
+                headers["Authorization"] = `Bearer ${apiKey}`; // Example: Bearer token auth
+            }
+            const response = yield fetch(apiUrl, {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                // Log detailed error if the API responds with non-OK status
+                const errorBody = yield response.text();
+                console.error(`LLM Tracker: API request failed with status ${response.status}. URL: ${apiUrl}, Body: ${errorBody}`);
+                // Throw an error to be caught by the caller (in withLLMTracking)
+                throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+            }
+            // Optional: Log success confirmation for debugging
+            // console.log("LLM Tracker: Tracking data sent successfully.");
+        }
+        catch (error) {
+            // Catch network errors or errors during the fetch operation
+            console.error(`LLM Tracker: Network or fetch error sending tracking data to ${apiUrl}.`, error);
+            // Re-throw the error to be caught by the caller
+            throw error;
+        }
+    });
 }
-*/
 // --- Example Usage (How a developer would use it) ---
 /*
 // Assume you have an OpenAI client initialized

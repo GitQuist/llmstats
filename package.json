@@ -1,19 +1,35 @@
 {
-  "name": "llmstats",
+  "name": "llm-use",
   "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "npm run build && npm run start",
     "prepare": "npm run build"
   },
-  "keywords": [],
+  "keywords": [
+    "LLM",
+    "tracker",
+    "token usage",
+    "monitoring"
+  ],
   "author": "github.com/gitquist",
-  "license": "ISC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gitquist/llm-tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gitquist/llm-tracker/issues"
+  },
+  "homepage": "https://github.com/gitquist/llm-tracker#readme",
   "type": "commonjs",
-  "description": "",
+  "description": "A Higher-Order Function (HOF) for tracking Large Language Model (LLM) usage and token consumption.",
   "devDependencies": {
     "@types/node": "^22.14.0",
     "typescript": "^5.8.2"

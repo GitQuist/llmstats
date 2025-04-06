@@ -1,5 +1,7 @@
 interface LLMTrackerOptions {
     functionName: string;
+    trackerApiUrl: string;
+    apiKey?: string;
     metadata?: Record<string, any>;
     tokenExtractor?: (response: any) => {
         inputTokens: number;
