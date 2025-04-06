@@ -105,10 +105,7 @@ export function withLLMTracking<TArgs extends any[], TResult>(
         },
       };
 
-      // --- 5. Log Data to Console ---
-      console.log("LLM Tracker Data:", JSON.stringify(trackingData, null, 2)); // Pretty print the JSON
-
-      // --- Send Data to Backend (Fire and Forget) ---
+      // ---5. Send Data to Backend (Fire and Forget) ---
 
       sendTrackingData(
         options.trackerApiUrl,
