@@ -66,9 +66,7 @@ function withLLMTracking(originalFunction, options) {
                 metadata: Object.assign(Object.assign({}, options.metadata), { // Include user-provided metadata
                     durationMs }),
             };
-            // --- 5. Log Data to Console ---
-            console.log("LLM Tracker Data:", JSON.stringify(trackingData, null, 2)); // Pretty print the JSON
-            // --- Send Data to Backend (Fire and Forget) ---
+            // ---5. Send Data to Backend (Fire and Forget) ---
             sendTrackingData(options.trackerApiUrl, trackingData, options.apiKey).catch((error) => {
                 // Log errors but don't let tracking failure break the main flow
                 console.error("LLM Tracker: Failed to send tracking data.", error);

@@ -1,80 +1,190 @@
 # LLM Tracker
 
-A Higher-Order Function (HOF) for tracking Large Language Model (LLM) usage and token consumption.
+LLM Tracker is a simple utility for tracking token usage and other metrics when making calls to Large Language Models (LLMs) in JavaScript/TypeScript applications. The tracker wraps your LLM API calls and reports usage statistics to your analytics backend.
 
-## Overview
+## Features
 
-LLM Tracker is a utility designed to wrap around asynchronous functions that make LLM API calls, tracking their token usage and other relevant metadata. It provides a flexible way to monitor and log LLM interactions, supporting various LLM providers with customizable extraction logic.
+- Track token usage (input, output, total) for LLM API calls
+- Integrate with multiple LLM providers through provider-specific extractors
+- Send tracking data to your backend API for analytics
+- Easily extensible for custom LLM providers
+- Zero overhead to your application's performance (fire-and-forget logging)
+- Factory pattern for app-wide configuration
 
 ## Installation
 
-To install LLM Tracker, run the following command in your project directory:
-
 ```bash
 npm install llm-tracker
+# or
+yarn add llm-tracker
+# or
+pnpm add llm-tracker
 ```
 
 ## Usage
 
-Here's a basic example of how to use LLM Tracker with an OpenAI client:
+### OpenAI
 
 ```typescript
-import OpenAI from "openai";
 import { withLLMTracking } from "llm-tracker";
+import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-async function generateBlogPost(topic: string): Promise<any> {
-  console.log(`Generating blog post about: ${topic}`);
-  const completion = await openai.chat.completions.create({
-    messages: [
-      { role: "user", content: `Write a short blog post about ${topic}` },
-    ],
-    model: "gpt-4o",
+// Wrap the OpenAI chat completion function
+const trackedChatCompletion = withLLMTracking(
+  openai.chat.completions.create.bind(openai.chat.completions),
+  {
+    functionName: "openai.chat.completions.create",
+    trackerApiUrl: "https://your-analytics-api.com/track",
+    apiKey: "your-analytics-api-key", // Optional
+    metadata: {
+      // Optional additional data to track
+      userId: "user123",
+      sessionId: "session456",
+    },
+  }
+);
+
+// Use the tracked function just like the original
+async function askQuestion(question) {
+  const completion = await trackedChatCompletion({
+    model: "gpt-4",
+    messages: [{ role: "user", content: question }],
   });
-  console.log("API Call successful.");
-  return completion;
-}
 
-const trackedGenerateBlogPost = withLLMTracking(generateBlogPost, {
-  functionName: "generateBlogPost",
-  trackerApiUrl: "https://your-tracking-api.com/track",
+  return completion.choices[0].message.content;
+}
+```
+
+### Vercel AI SDK
+
+To track token usage with the Vercel AI SDK, use the provided AI SDK extractors:
+
+```typescript
+import {
+  withLLMTracking,
+  aiSDKTokenExtractor,
+  aiSDKModelExtractor,
+} from "llm-tracker";
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+// Wrap the AI SDK generateText function
+const trackedGenerateText = withLLMTracking(generateText, {
+  functionName: "ai.generateText",
+  trackerApiUrl: "https://your-analytics-api.com/track",
+  apiKey: "your-analytics-api-key", // Optional
+  // Use the AI SDK specific extractors
+  tokenExtractor: aiSDKTokenExtractor,
+  modelExtractor: aiSDKModelExtractor,
   metadata: {
-    userId: "user-123",
-    feature: "blog-generation-v1",
+    // Since AI SDK doesn't return the model in the response,
+    // you should provide it in metadata
+    modelName: "OpenAI/gpt-4",
+    userId: "user123",
   },
 });
 
-async function main() {
-  try {
-    const result = await trackedGenerateBlogPost("the future of AI");
-    console.log("Blog post generation complete. Tracking data logged.");
-  } catch (error) {
-    console.error("Failed to generate blog post:", error);
-  }
-}
+// Use the tracked function just like you would use the original
+async function generateResponse(prompt) {
+  const { text } = await trackedGenerateText({
+    model: openai("gpt-4"),
+    prompt: prompt,
+  });
 
-main();
+  return text;
+}
 ```
 
-## Configuration Options
+### Factory Pattern for App-Wide Configuration
 
-The `withLLMTracking` HOF accepts an options object with the following properties:
+If you're making multiple LLM calls across your application, you can use the factory pattern to create pre-configured tracking wrappers:
 
-- `functionName`: Identifier for the tracked function.
-- `trackerApiUrl`: URL of your backend tracking API.
-- `apiKey`: Optional API key for authenticating with your tracker API.
-- `metadata`: Optional additional metadata to include in tracking data.
-- `tokenExtractor`: Optional custom function to extract token usage from LLM responses.
-- `modelExtractor`: Optional custom function to extract the model name from LLM responses.
+```typescript
+import { createLLMTracker, aiSDKTokenExtractor } from "llm-tracker";
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
 
-## Features
+// Create a factory with common configuration
+const createTracker = createLLMTracker({
+  trackerApiUrl: "https://your-analytics-api.com/track",
+  apiKey: "your-analytics-api-key",
+  metadata: {
+    appVersion: "1.0.0",
+    environment: process.env.NODE_ENV || "development",
+  },
+});
 
-- Tracks input tokens, output tokens, and total tokens used by LLM API calls.
-- Extracts model name from LLM responses.
-- Supports customizable token and model extraction logic.
-- Logs tracking data to the console and optionally sends it to a specified backend API.
+// Create specific trackers for different functions
+const trackedGenerateText = createTracker(generateText, {
+  functionName: "ai.generateText",
+  tokenExtractor: aiSDKTokenExtractor,
+  metadata: {
+    service: "text-generation",
+  },
+});
 
-## Contributing
+// Use the tracked function with runtime metadata
+async function generateResponse(prompt, userId) {
+  const { text } = await trackedGenerateText(
+    // First argument: The original function arguments
+    {
+      model: openai("gpt-4"),
+      prompt: prompt,
+    },
+    // Second argument: Runtime metadata that will be merged with base metadata
+    {
+      modelName: "gpt-4", // Since AI SDK doesn't include model in response
+      userId: userId,
+      requestId: `req-${Date.now()}`,
+    }
+  );
 
-Contributions to LLM Tracker are welcome. Please submit issues and pull requests on the project's GitHub repository.
+  return text;
+}
+```
+
+## Advanced Usage
+
+### Custom Extractors
+
+If you're using an LLM provider that isn't directly supported, you can create custom extractors:
+
+```typescript
+import { withLLMTracking } from "llm-tracker";
+
+// Create custom extractors for your LLM provider
+const customTokenExtractor = (response) => {
+  // Your logic to extract input and output tokens
+  return {
+    inputTokens: response.someField.inputTokenCount,
+    outputTokens: response.someField.outputTokenCount,
+  };
+};
+
+const customModelExtractor = (response) => {
+  return response.modelInfo.name;
+};
+
+// Use your custom extractors
+const trackedLLMCall = withLLMTracking(yourLLMFunction, {
+  functionName: "custom.llm.call",
+  trackerApiUrl: "https://your-analytics-api.com/track",
+  tokenExtractor: customTokenExtractor,
+  modelExtractor: customModelExtractor,
+});
+```
+
+## Supported LLM Providers
+
+LLM Tracker currently includes built-in support for:
+
+- OpenAI API (default)
+- Vercel AI SDK
+
+## License
+
+MIT
